@@ -1,7 +1,7 @@
 import asyncio, logging, os, uuid
 from gemini_bridge import run
 
-HOST = os.getenv("AUDIO_SOCKET_HOST", "0.0.0.0")
+HOST = os.getenv("AUDIO_SOCKET_HOST", "127.0.0.1")
 PORT = int(os.getenv("AUDIO_SOCKET_PORT", "9019"))
 MAX_CALLS = int(os.getenv("MAX_CONCURRENT_CALLS", "2"))
 

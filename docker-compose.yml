@@ -1,3 +1,14 @@
 services:
+  asterisk:
+    build: ./asterisk
+    restart: unless-stopped
+    env_file: .env
+    network_mode: host
+    depends_on:
+      - app
+
   app:
-    image: python:3.12-slim
+    build: ./app
+    restart: unless-stopped
+    env_file: .env
+    network_mode: host

@@ -1,0 +1,16 @@
+[general]
+static=yes
+autofallthrough=yes
+
+[from-yemot]
+exten => _X.,1,NoOp(Incoming Yemot call: ${CALLERID(all)})
+ same => n,Answer()
+ same => n,Wait(0.2)
+ same => n,AudioSocket(${UUID()},app:9019)
+ same => n,Hangup()
+
+exten => s,1,NoOp(Incoming Yemot anonymous call: ${CALLERID(all)})
+ same => n,Answer()
+ same => n,Wait(0.2)
+ same => n,AudioSocket(${UUID()},app:9019)
+ same => n,Hangup()

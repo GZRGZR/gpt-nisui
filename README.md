@@ -1,48 +1,61 @@
 # Gemini Live phone bridge
 
-This repository now contains a SIP phone bridge between Yemot HaMashiach and Gemini Live.
+This project is a self-hosted SIP phone bridge between Yemot HaMashiach and Gemini Live.
 
-Flow:
+Call flow:
 
 Phone -> Yemot SIP -> Asterisk -> AudioSocket -> Gemini Live -> Asterisk -> Phone
 
-## Requirements
+## Required accounts and equipment
 
-- A Yemot account/line with SIP access.
-- A Linux VPS with a public IP.
-- Docker and Docker Compose.
-- A Gemini API key.
+- A Yemot system with a SIP account enabled.
+- An Oracle Cloud account to create an Always Free VM (or another Linux VPS).
+- A Gemini API key from Google AI Studio.
+- Docker and Docker Compose on the cloud VM.
 
-## Setup
+## Privacy and billing — read before deploying
 
-1. Copy .env.example to .env.
-2. Fill in the Yemot SIP credentials, public IP, and Gemini API key.
-3. Start the stack:
+- The bridge does not print user or Gemini transcripts to the application logs by default.
+- The Gemini API key and SIP password must be stored only in the server's `.env` file. Never commit `.env` to GitHub.
+- This bridge sends the call audio and conversation context to Google's Gemini API. On unpaid Gemini API quota, Google may use prompts and responses to improve products and may send content to human reviewers. Do not discuss sensitive or confidential matters on the free tier.
+- Google Search is enabled by default for current-news questions. Search grounding availability and quotas depend on the Gemini project/tier. If you want to avoid web searches, set `ENABLE_GOOGLE_SEARCH=false` in `.env`.
+- Use Oracle resources explicitly labeled Always Free. Oracle says idle Always Free compute instances may be reclaimed. It also may require a card for account verification. Do not upgrade to a paid plan if you cannot accept any possible charges.
+- No hosting provider can guarantee both zero cost and uninterrupted 24/7 SIP service on a free tier.
 
+## Deploy
+
+1. Copy `.env.example` to `.env`.
+2. Enter the SIP credentials supplied by Yemot and the Gemini API key.
+3. Set `ASTERISK_EXTERNAL_IP` to the VM's public IPv4 address.
+4. Start:
+
+   ```bash
    docker compose up -d --build
+   ```
 
-4. Check logs:
+5. Inspect logs without exposing secrets:
 
-   docker compose logs -f
+   ```bash
+   docker compose logs --tail=100
+   ```
 
-The Asterisk container uses the current community Asterisk image from andrius/asterisk and its built-in envsubst support for rendering the SIP templates.
+The Compose file uses host networking so SIP/RTP ports can be handled directly by Asterisk. The app's AudioSocket listener binds to loopback only; the Asterisk dialplan connects to `127.0.0.1:9019`.
 
-## Network
+## Firewall
 
-The Compose file uses host networking because SIP/RTP is sensitive to NAT and port mapping. Protect the server with a firewall. SIP uses UDP 5060 and Asterisk uses the RTP range configured in asterisk/rtp.conf.
+Asterisk needs UDP 5060 and the RTP range in `asterisk/rtp.conf` (currently 10000–10100). Do not open the AudioSocket port 9019 to the internet.
 
-The AudioSocket bridge binds to localhost by default.
+Before opening UDP 5060 globally, ask Yemot support for their current complete SIP/RTP source IP ranges and restrict the ingress rules to those ranges where possible. Community posts report that the list can change and may contain many addresses; do not rely on a short list copied from a forum.
 
-## Gemini Live
+Also:
+- Keep SSH restricted to your own current IP or use a cloud console.
+- Do not add any dialplan routes that let unauthenticated callers place outbound calls.
+- Use the SIP credentials from Yemot's official account screen and keep the API key out of logs.
 
-The bridge sends raw PCM audio to Gemini Live and receives 24 kHz PCM audio back. The phone side is 8 kHz PCM, so the bridge performs the sample-rate conversion.
+## Live news
 
-The default model is gemini-3.8-live and the default voice is Kore.
+The Gemini Live session can be configured with the built-in Google Search tool. `ENABLE_GOOGLE_SEARCH=true` enables that option. Search quota and billing rules are controlled by Google and should be checked for the API project before making it available to callers.
 
-## Secrets
+## Status
 
-Never commit .env. The Gemini key stays on the server and is not sent to callers.
-
-## Yemot
-
-Configure the Yemot system so incoming calls are routed to the SIP account registered by Asterisk. Use the exact SIP credentials shown in your Yemot account.
+The code and deployment templates have been updated, but the actual phone call has not been tested against the user's Yemot account or cloud VM. Treat first deployment as a test and verify SIP registration, inbound call routing, two-way audio, and current-news searches before relying on it.

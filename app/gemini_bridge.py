@@ -130,12 +130,27 @@ async def run(audio_in, audio_out, stop, call_id):
 
                 sender = asyncio.create_task(send())
                 receiver = asyncio.create_task(receive())
+                stop_waiter = asyncio.create_task(stop.wait())
+                tasks = (sender, receiver, stop_waiter)
                 try:
-                    await stop.wait()
+                    done, _ = await asyncio.wait(
+                        tasks,
+                        return_when=asyncio.FIRST_COMPLETED,
+                    )
+                    if stop_waiter not in done:
+                        failed = next(
+                            (task for task in (sender, receiver) if task in done),
+                            None,
+                        )
+                        if failed is not None:
+                            error = failed.exception()
+                            if error is not None:
+                                raise error
+                        raise RuntimeError("Gemini audio task ended unexpectedly")
                 finally:
-                    sender.cancel()
-                    receiver.cancel()
-                    await asyncio.gather(sender, receiver, return_exceptions=True)
+                    for task in tasks:
+                        task.cancel()
+                    await asyncio.gather(*tasks, return_exceptions=True)
 
             return
 

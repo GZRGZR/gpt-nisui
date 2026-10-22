@@ -43,10 +43,10 @@ class AudioSocket:
 async def handle(reader, writer):
     async with slots:
         call_id = str(uuid.uuid4())[:8]
-        log.info("[%s] AudioSocket from %s", call_id, writer.get_extra_info("peername"))
+        log.info("[%s] AudioSocket connected", call_id)
         sock = AudioSocket(reader, writer)
         incoming = asyncio.Queue(maxsize=100)
-        outgoing = asyncio.Queue(maxsize=100)
+        outgoing = asyncio.Queue()
         stop = asyncio.Event()
 
         async def receive_phone():
